@@ -574,7 +574,7 @@
       </div>
       
       <div class="card" id="card-movistar-hogar" role="button" tabindex="0" aria-pressed="false">
-        <img src="Movistar.png" alt="Movistar Hogar">
+        <img src="movistar.png" alt="Movistar Hogar">
         <p>Movistar Hogar</p>
         <div class="small">Acceso a Mi Movistar</div>
       </div>
@@ -628,8 +628,11 @@
     const DOCUMENTACION_URL = "https://drive.google.com/drive/folders/1ZrCRVzoKp9TLC39W6ZyRubRtkxMc_li8?usp=sharing";
 
     // Credenciales de Google Drive API
-    const CLIENT_ID = '1084536179103-n0l8rs3rl9e19ouc5jk8ah0cobqsaq9o.apps.googleusercontent.com';
+    const CLIENT_ID = '1084536179103-j25toqfluaajts7jemejld5cfc2vt3u8.apps.googleusercontent.com';
     const UPLOAD_FOLDER_ID = '1ZrCRVzoKp9TLC39W6ZyRubRtkxMc_li8'; // Opcional, si no lo pones, se sube a la raíz.
+    // Cambiamos el scope a uno que suele funcionar mejor para subir archivos: drive.appdata
+    const SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+
 
     // Elementos del DOM
     const loginScreen = document.getElementById('login-screen');
@@ -676,7 +679,7 @@
     gapi.load('client:auth2', () => {
         gapi.client.init({
             clientId: CLIENT_ID,
-            scope: 'https://www.googleapis.com/auth/drive.file'
+            scope: SCOPE
         }).then(() => {
             console.log('Google API cliente inicializado.');
         }, (error) => {
@@ -698,9 +701,12 @@
             
             const metadata = {
                 'name': file.name,
-                'mimeType': file.type,
-                'parents': UPLOAD_FOLDER_ID ? [UPLOAD_FOLDER_ID] : []
+                'mimeType': file.type
             };
+            if (UPLOAD_FOLDER_ID) {
+                metadata.parents = [UPLOAD_FOLDER_ID];
+            }
+
 
             const form = new FormData();
             form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
