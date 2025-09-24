@@ -171,6 +171,13 @@
         font-size: 1.5rem;
         margin-right: 5px;
     }
+    .countdown {
+        font-size: 2rem;
+        font-weight: bold;
+        text-align: center;
+        color: var(--accent);
+        margin-top: 10px;
+    }
 
     /* footer small */
     footer{ 
@@ -197,11 +204,11 @@
 
     <section class="grid" aria-label="Listado de servicios">
 
-      <a class="card" href="https://oficinavirtual.edemsa.com/consulta_lista_factura.php?auth=MTAyNDE3Nw==" target="_blank" rel="noopener">
+      <div class="card" id="card-edemsa" role="button" tabindex="0" aria-pressed="false">
         <img src="edemsa.png" alt="Edemsa - energía">
         <p>Edemsa</p>
         <div class="small">Ir a Oficina Virtual</div>
-      </a>
+      </div>
 
       <a class="card" href="https://oficinavirtual.aysam.com.ar/section/home-public/detail-cuenta/073-0076401-000-7" target="_blank" rel="noopener">
         <img src="aguas.png" alt="Aguas Mendocinas - agua">
@@ -227,23 +234,17 @@
         <div class="small">Ir a Mi Movistar</div>
       </div>
 
-      <a class="card" href="https://drive.google.com/drive/folders/1ZrCRVzoKp9TLC39W6ZyRubRtkxMc_li8?usp=sharing" target="_blank" rel="noopener">
+      <div class="card" id="card-documentacion" role="button" tabindex="0" aria-pressed="false">
         <img src="documentacion.png" alt="Documentación Eli y Ruth">
         <p>Documentación Eli y Ruth</p>
         <div class="small">Ver documentos importantes</div>
-      </a>
+      </div>
 
       <div class="card" id="card-wifi" role="button" tabindex="0" aria-pressed="false">
         <img src="wifi.png" alt="Contraseñas Wifi">
         <p>Contraseñas Wifi</p>
         <div class="small">Ver contraseñas de red</div>
       </div>
-
-      <a class="card" href="https://www.movistar.com.ar/mi-movistar" target="_blank" rel="noopener">
-        <img src="movistar.png" alt="Movistar Móvil">
-        <p>Movistar Móvil</p>
-        <div class="small">Ir a Mi Movistar</div>
-      </a>
 
     </section>
 
@@ -257,6 +258,9 @@
 
   <script>
     // URLs y números
+    const EDEMSA_URL = "https://oficinavirtual.edemsa.com/login.php";
+    const EDEMSA_NIC = "1024177";
+    
     const ECOGAS_URL = "https://autogestion.ecogas.com.ar/uiextranet/ingreso?s=p";
     const ECOGAS_CLIENT_NUMBER = "20111745";
     
@@ -268,15 +272,21 @@
         email: "damiivars17@gmail.com",
         password: "Ruth1948"
     };
+    
+    const DOCUMENTACION_URL = "https://drive.google.com/drive/folders/1ZrCRVzoKp9TLC39W6ZyRubRtkxMc_li8?usp=sharing";
 
     // Elementos del DOM
+    const cardEdemsa = document.getElementById('card-edemsa');
     const cardEcogas = document.getElementById('card-ecogas');
     const cardTuenti = document.getElementById('card-tuenti');
     const cardMovistarHogar = document.getElementById('card-movistar-hogar');
+    const cardDocumentacion = document.getElementById('card-documentacion');
     const cardWifi = document.getElementById('card-wifi');
     const modal = document.getElementById('modal');
     const modalContent = document.getElementById('modal-content');
     
+    let countdownInterval;
+
     // Función para mostrar el modal y copiar el contenido
     async function showModalAndCopy(contentHTML, copyContent) {
       modalContent.innerHTML = contentHTML;
@@ -292,17 +302,17 @@
         const copyPasswordBtn = document.getElementById('copyPasswordBtn');
         const openMovistarBtn = document.getElementById('openMovistarBtn');
         
-        copyEmailBtn.addEventListener('click', async () => {
+        if (copyEmailBtn) copyEmailBtn.addEventListener('click', async () => {
           await navigator.clipboard.writeText(copyContent.email);
           alert('Correo copiado al portapapeles!');
         });
         
-        copyPasswordBtn.addEventListener('click', async () => {
+        if (copyPasswordBtn) copyPasswordBtn.addEventListener('click', async () => {
           await navigator.clipboard.writeText(copyContent.password);
           alert('Contraseña copiada al portapapeles!');
         });
 
-        openMovistarBtn.addEventListener('click', () => {
+        if (openMovistarBtn) openMovistarBtn.addEventListener('click', () => {
           window.open(MOVISTAR_URL, '_blank', 'noopener');
           hideModal();
         });
@@ -310,9 +320,9 @@
       } else if (copyContent) {
         try {
           await navigator.clipboard.writeText(copyContent);
-          console.log('Número copiado al portapapeles.');
+          console.log('Contenido copiado al portapapeles.');
         } catch (err) {
-          console.error('Error al copiar el número: ', err);
+          console.error('Error al copiar el contenido: ', err);
         }
       }
     }
@@ -320,80 +330,134 @@
     // Función para ocultar el modal con animación
     function hideModal() {
       modal.classList.remove('is-visible');
-      modalContent.innerHTML = '';
+      clearInterval(countdownInterval); // Limpiar el intervalo de la cuenta regresiva
       setTimeout(() => {
         modal.style.display = 'none';
+        modalContent.innerHTML = '';
       }, 300); // Coincide con la duración de la transición
     }
 
-    // Event listeners para cada tarjeta
-    cardEcogas.addEventListener('click', () => {
-      const html = `
+    // Funciones para cada tipo de tarjeta
+    const setupModal = (card, htmlContent, copyContent, actionButtonId, actionUrl) => {
+        card.addEventListener('click', () => {
+            showModalAndCopy(htmlContent, copyContent).then(() => {
+                if (actionButtonId) {
+                    const actionButton = document.getElementById(actionButtonId);
+                    actionButton.addEventListener('click', () => {
+                        window.open(actionUrl, '_blank', 'noopener');
+                        hideModal();
+                    });
+                }
+                const backBtn = document.getElementById('backBtn');
+                if (backBtn) backBtn.addEventListener('click', hideModal);
+            });
+        });
+    };
+
+    // Configuración de tarjetas
+    setupModal(
+        cardEdemsa,
+        `
+        <h2>Edemsa</h2>
+        <p>NIC copiado automáticamente. Dirigirse hacia la web de Edemsa.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:20px;">
+          <button id="modalButton" class="btn-primary" title="Ir a Edemsa">IR A EDEMSA</button>
+        </div>
+        <button id="backBtn" class="btn-ghost btn-back">Volver</button>
+        `,
+        EDEMSA_NIC,
+        'modalButton',
+        EDEMSA_URL
+    );
+
+    setupModal(
+        cardEcogas,
+        `
         <h2>Ecogas</h2>
         <p>Se copió el número de cliente de Ecogas. Dirigirse hacia esa página.</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:20px;">
           <button id="modalButton" class="btn-primary" title="Abrir oficina virtual de Ecogas">Oficina virtual Ecogas</button>
         </div>
         <button id="backBtn" class="btn-ghost btn-back">Volver</button>
-      `;
-      showModalAndCopy(html, ECOGAS_CLIENT_NUMBER).then(() => {
-        document.getElementById('modalButton').addEventListener('click', () => {
-            window.open(ECOGAS_URL, '_blank', 'noopener');
-            hideModal();
-        });
-        document.getElementById('backBtn').addEventListener('click', hideModal);
-      });
-    });
+        `,
+        ECOGAS_CLIENT_NUMBER,
+        'modalButton',
+        ECOGAS_URL
+    );
 
-    cardTuenti.addEventListener('click', () => {
-      const html = `
+    setupModal(
+        cardTuenti,
+        `
         <h2>Recarga Tuenti</h2>
         <p>Se copió el número de Tuenti. Dirigirse hacia esa página.</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:20px;">
           <button id="modalButton" class="btn-primary" title="Recargar celular Ruth">Recargar celular Ruth</button>
         </div>
         <button id="backBtn" class="btn-ghost btn-back">Volver</button>
+        `,
+        TUENTI_PHONE_NUMBER,
+        'modalButton',
+        TUENTI_URL
+    );
+
+    setupModal(
+        cardMovistarHogar,
+        `
+        <h2>Mi Movistar</h2>
+        <p>Seleccionar "Correo" para copiar el correo, y "Contraseña" para copiar la contraseña. Luego dirigirse a Movistar.</p>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:20px;">
+            <button id="copyEmailBtn" class="btn-secondary">Copiar Correo</button>
+            <button id="copyPasswordBtn" class="btn-secondary">Copiar Contraseña</button>
+        </div>
+        <div style="display:flex;justify-content:center;margin-top:20px;">
+          <button id="openMovistarBtn" class="btn-primary">Dirigirse a Movistar</button>
+        </div>
+        <button id="backBtn" class="btn-ghost btn-back">Volver</button>
+        `,
+        MOVISTAR_CREDENTIALS
+    );
+
+    cardDocumentacion.addEventListener('click', () => {
+      const html = `
+        <h2>Documentación Eli y Ruth</h2>
+        <p>Redirigiendo en <span id="countdown-number" class="countdown">3</span></p>
+        <button id="backBtn" class="btn-ghost btn-back">Volver</button>
       `;
-      showModalAndCopy(html, TUENTI_PHONE_NUMBER).then(() => {
-        document.getElementById('modalButton').addEventListener('click', () => {
-            window.open(TUENTI_URL, '_blank', 'noopener');
-            hideModal();
-        });
-        document.getElementById('backBtn').addEventListener('click', hideModal);
+      showModalAndCopy(html, null);
+      
+      let counter = 3;
+      const countdownElement = document.getElementById('countdown-number');
+      
+      countdownInterval = setInterval(() => {
+        counter--;
+        if (countdownElement) {
+          countdownElement.textContent = counter;
+        }
+        if (counter <= 0) {
+          clearInterval(countdownInterval);
+          window.open(DOCUMENTACION_URL, '_blank', 'noopener');
+          hideModal();
+        }
+      }, 1000);
+      
+      const backBtn = document.getElementById('backBtn');
+      if (backBtn) backBtn.addEventListener('click', () => {
+        clearInterval(countdownInterval);
+        hideModal();
       });
     });
 
-    cardMovistarHogar.addEventListener('click', () => {
-        const html = `
-            <h2>Mi Movistar</h2>
-            <p>Seleccionar "Correo" para copiar el correo, y "Contraseña" para copiar la contraseña. Luego dirigirse a Movistar.</p>
-            <div style="display:flex;flex-direction:column;gap:12px;margin-top:20px;">
-                <button id="copyEmailBtn" class="btn-secondary">Copiar Correo</button>
-                <button id="copyPasswordBtn" class="btn-secondary">Copiar Contraseña</button>
-            </div>
-            <div style="display:flex;justify-content:center;margin-top:20px;">
-              <button id="openMovistarBtn" class="btn-primary">Dirigirse a Movistar</button>
-            </div>
-            <button id="backBtn" class="btn-ghost btn-back">Volver</button>
-        `;
-        showModalAndCopy(html, MOVISTAR_CREDENTIALS).then(() => {
-          document.getElementById('backBtn').addEventListener('click', hideModal);
-        });
-    });
-
-    cardWifi.addEventListener('click', () => {
-        const html = `
-            <h2>Contraseñas Wifi</h2>
-            <div class="modal-images">
-                <img src="wifi 2.jpeg" alt="Contraseña de red 2.4 GHz">
-                <img src="wifi 5.jpeg" alt="Contraseña de red 5 GHz">
-            </div>
-            <button id="backBtn" class="btn-ghost btn-back">Volver</button>
-        `;
-        showModalAndCopy(html, null).then(() => {
-          document.getElementById('backBtn').addEventListener('click', hideModal);
-        });
-    });
+    setupModal(
+        cardWifi,
+        `
+        <h2>Contraseñas Wifi</h2>
+        <div class="modal-images">
+            <img src="wifi 2.jpeg" alt="Contraseña de red 2.4 GHz">
+            <img src="wifi 5.jpeg" alt="Contraseña de red 5 GHz">
+        </div>
+        <button id="backBtn" class="btn-ghost btn-back">Volver</button>
+        `
+    );
 
     // Cerrar modal al hacer clic en el fondo o presionar 'Escape'
     modal.addEventListener('click', (e) => {
